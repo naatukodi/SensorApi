@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'  # path to your Function project
-  DOTNET_VERSION: '9.0.x'              # semver format, include prerelease if you’re on preview
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'    # path to your Function project
+  DOTNET_VERSION: '9.0.x'                # semver, include‑prerelease if needed
 
 jobs:
   build-and-deploy:
@@ -30,15 +30,25 @@ jobs:
         run: |
           pushd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           dotnet restore
-          dotnet publish --configuration Release --output ./publish
+          dotnet publish --configuration Release --output publish
           popd
 
-      - name: Deploy to Azure Functions (via publish profile ZIP‑deploy)
-        uses: Azure/functions-action@v1
+      - name: Login to Azure
+        uses: azure/login@v2
         with:
-          app-name: 'gsrsensorapi' 
-          # <-- replace this secret with the XML you downloaded from:
-          # Azure Portal ▸ Function App ▸ Get Publish Profile
-          publish-profile: ${{ secrets.GSRSENSORAPI_PUBLISH_PROFILE }}
-          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/publish'
-          
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: SERVICE_PRINCIPAL
+
+      - name: Zip the published output
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          zip -r ../package.zip publish
+
+      - name: Deploy via Azure CLI (run‑from‑zip)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az functionapp deployment source config-zip \
+              --resource-group ${{ secrets.AZURE_FUNCTIONAPP_RESOURCE_GROUP }} \
+              --name gsrsensorapi \
+              --src package.zip
