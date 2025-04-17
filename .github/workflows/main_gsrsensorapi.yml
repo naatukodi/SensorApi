@@ -1,24 +1,20 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy dotnet core project to Azure Function App - GSRSensorApi
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'  # path to your Function project
-  DOTNET_VERSION: '9.0.x'              # semver format, include prerelease for preview
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'    # path to your Function project
+  DOTNET_VERSION: '9.0.x'                # semver format, include prerelease
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # for OIDC login
-      contents: read    # for actions/checkout
+      id-token: write    # for OIDC login
+      contents: read     # for actions/checkout
 
     steps:
       - name: Checkout repository
@@ -40,16 +36,13 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          auth-type: service-principal
-          client-id:        ${{ secrets.AZUREAPPSERVICE_CLIENTID_3B2148C9B6CE43FA9ECAB9EA427796CB }}
-          tenant-id:        ${{ secrets.AZUREAPPSERVICE_TENANTID_6396C787E7FC4EA5A1F1478BAE79E994 }}
-          subscription-id:  ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2EA3E20F934B48B88DB59A3E183A307F }}
-          client-secret:    ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET_3B2148C9B6CE43FA9ECAB9EA427796CB }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          auth-type: SERVICE_PRINCIPAL
 
       - name: Deploy to Azure Functions (ZIP)
         uses: Azure/functions-action@v1
         with:
-          app-name:      'gsrsensorapi'                    # must be lowercase
+          app-name:      'gsrsensorapi'                  # must be lowercase
           slot-name:     'Production'
           package:       '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/publish'
-          publish-method: zipdeploy                        # ← force ZIP deploy
+          publish-method: zipdeploy
