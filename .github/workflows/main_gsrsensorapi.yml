@@ -36,7 +36,9 @@ jobs:
       - name: Deploy to Azure Functions (via publish profile ZIP‑deploy)
         uses: Azure/functions-action@v1
         with:
+          app-name: 'gsrsensorapi' 
           # <-- replace this secret with the XML you downloaded from:
           # Azure Portal ▸ Function App ▸ Get Publish Profile
           publish-profile: ${{ secrets.GSRSENSORAPI_PUBLISH_PROFILE }}
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/publish'
+          
