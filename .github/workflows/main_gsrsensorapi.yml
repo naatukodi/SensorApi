@@ -7,24 +7,24 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'    # path to your Function project
-  DOTNET_VERSION: '8.0.x'                # must be in semver format
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
+  DOTNET_VERSION: '9.0.x'   # ← now installing .NET 9 previews
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write    # for OIDC login
-      contents: read     # for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET ${{ env.DOTNET_VERSION }} SDK
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          include-prerelease: true
 
       - name: Restore dependencies
         run: dotnet restore ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
