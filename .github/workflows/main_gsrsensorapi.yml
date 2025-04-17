@@ -10,44 +10,46 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  DOTNET_VERSION: '9.0.x' # set this to the dotnet version to use
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'  # path to your Function project
+  DOTNET_VERSION: '9.0.x'              # semver format, include prerelease for preview
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write   # for OIDC login
+      contents: read    # for actions/checkout
 
     steps:
-      - name: 'Checkout GitHub Action'
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-        uses: actions/setup-dotnet@v1
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          include-prerelease: true
 
-      - name: 'Resolve Project Dependencies Using Dotnet'
-        shell: bash
+      - name: Restore & build
         run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          pushd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          dotnet restore
+          dotnet build --configuration Release --output ./publish
           popd
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_3B2148C9B6CE43FA9ECAB9EA427796CB }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6396C787E7FC4EA5A1F1478BAE79E994 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2EA3E20F934B48B88DB59A3E183A307F }}
+          auth-type: service-principal
+          client-id:        ${{ secrets.AZUREAPPSERVICE_CLIENTID_3B2148C9B6CE43FA9ECAB9EA427796CB }}
+          tenant-id:        ${{ secrets.AZUREAPPSERVICE_TENANTID_6396C787E7FC4EA5A1F1478BAE79E994 }}
+          subscription-id:  ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2EA3E20F934B48B88DB59A3E183A307F }}
+          client-secret:    ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET_3B2148C9B6CE43FA9ECAB9EA427796CB }}
 
-      - name: 'Run Azure Functions Action'
+      - name: Deploy to Azure Functions (ZIP)
         uses: Azure/functions-action@v1
-        id: fa
         with:
-          app-name: 'gsrsensorapi'
-          slot-name: 'Production'
-          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          
+          app-name:      'gsrsensorapi'                    # must be lowercase
+          slot-name:     'Production'
+          package:       '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/publish'
+          publish-method: zipdeploy                        # ← force ZIP deploy
